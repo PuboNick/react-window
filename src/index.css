@@ -1,0 +1,129 @@
+.blur {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.panel {
+  overflow: visible;
+  background: #454545;
+  border: 1px solid #7f7f7f;
+  border-radius: 10px;
+  z-index: 1;
+  box-shadow:
+    0 1px 1px 0 rgba(88, 87, 87, 0.2),
+    0 1px 3px 1px rgba(88, 87, 87, 0.4);
+}
+
+.panel .panel-header {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  padding-left: 10px;
+  color: #bfbfc5;
+  background: rgba(4, 22, 42, 0);
+  cursor: move;
+  user-select: none;
+  display: flex;
+  align-items: center;
+}
+
+.panel .panel-content {
+  position: relative;
+  width: 100%;
+  height: calc(100% - 44px);
+  user-select: none;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}
+
+.panel .panel-header .close-btn {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  padding: 10px;
+  font-size: 18px;
+  cursor: default;
+  transition: all 0.5s;
+  opacity: 0.65;
+}
+
+.panel .panel-header .close-btn:hover {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.spin-icon {
+  transition: all 0.5s;
+  opacity: 0.65;
+}
+
+.spin-icon:hover {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.panel .panel-resize-rect {
+  position: absolute;
+  right: -15px;
+  bottom: -15px;
+  width: 30px;
+  height: 30px;
+  background-color: #cd2626;
+  cursor: nw-resize;
+  opacity: 0;
+}
+
+.panel .triangle {
+  width: 0;
+  height: 0;
+}
+
+.panel .link:hover {
+  text-decoration: underline;
+}
+
+.panel .ant-switch-checked {
+  background: #585757 !important;
+}
+
+.panel .ant-checkbox-inner {
+  background: #585757 !important;
+  border-color: #585757 !important;
+}
+
+.primary-responsive::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.primary-responsive::-webkit-scrollbar-track {
+  background: #525252;
+  border-radius: 4px;
+}
+
+.primary-responsive::-webkit-scrollbar-thumb {
+  background: #676666;
+  border-radius: 4px;
+}
+
+.primary-responsive::-webkit-scrollbar-thumb:hover {
+  background: #676666;
+}
+
+.primary-responsive::-webkit-scrollbar-corner {
+  background: #676666;
+}
+
+@-webkit-keyframes rotation {
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(360deg);
+  }
+}
+
+.rotation-all-the-time {
+  animation: rotation 1s linear infinite;
+}
