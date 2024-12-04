@@ -15,4 +15,5 @@ export const showPanelModal = (payload: any) => {
 
 export { panelStore };
 export { register } from './store';
+export type { PanelOptions } from './wrapper';
 export { PanelRender } from './wrapper';

@@ -66,9 +66,16 @@ class PanelStore {
 
   push(payload: any) {
     let panel: any = { id: random(), ...payload };
+    panel.panel = panel.panel || panel.name;
+
     const i: any = RegisterPanels.find((p) => panel.panel === p.name);
     if (!i) {
       return;
+    }
+
+    if (i.rest?.group) {
+      const list = this.state.list.filter((item: any) => item.rest.group === i.rest.group && item.panel !== i.name);
+      list.forEach((item) => this.remove(item.id));
     }
     panel = { ...panel, ...i };
     delete panel.content;
@@ -142,6 +149,14 @@ class PanelStore {
 
     save({ list, order: this.state.order, focus: this.state.focus });
     this.emitter.emit(PanelEvents.UPDATE_LIST, list);
+  }
+
+  removeByName(name: string) {
+    const list = this.state.list.filter((item) => item.panel === name);
+
+    list.forEach((item) => {
+      this.remove(item.id);
+    });
   }
 }
 
