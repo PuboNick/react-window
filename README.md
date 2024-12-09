@@ -1,30 +1,53 @@
-# React + TypeScript + Vite
+### React Window
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个可拖拽的窗口组件
 
-Currently, two official plugins are available:
+1.注册
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+import { register } from './src';
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
+register([
+  {
+    name: 'test',
+    title: '测试窗口',
+    panel: React.lazy(() => import('./test')),
+    minWidth: 370,
+    minHeight: 340,
+    single: true,
+    headerBorder: true,
   },
+]);
+```
+
+2.渲染
+
+```
+import { PanelRender } from './src';
+
+function App() {
+  return (
+    <div style={{ height: '100vh', width: '100%', position: 'relative', background: '#333' }}>
+      <PanelRender />
+    </div>
+  );
 }
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+3.打开窗口
+
+```
+import { panelStore } from './src';
+
+panelStore.push({ panel: 'test' /** 窗口名称 */ });
+```
+
+3.手动移除窗口
+
+```
+panelStore.remove('panel-id') //自动生成的窗口ID;
+panelStore.removeByName(test);
+```
+
+4.使用和配置样式
+目前只提供源码的使用方式和样式修改

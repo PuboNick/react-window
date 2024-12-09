@@ -11,6 +11,7 @@ register([
     minWidth: 370,
     minHeight: 340,
     single: true,
+    headerBorder: true,
   },
 ]);
 
