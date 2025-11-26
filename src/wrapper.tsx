@@ -30,6 +30,7 @@ export interface PanelOptions {
   isModal?: boolean /**模态框模式 */;
   removeOnWindowClose?: boolean /**浏览器关闭后是否移除*/;
   group?: string /**分组，一个分组中只允许同时存在一个 */;
+  options?: any /**额外参数 */;
 }
 
 const PanelComponent = (props: any = {}) => {
