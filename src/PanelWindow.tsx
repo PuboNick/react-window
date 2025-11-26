@@ -1,22 +1,24 @@
-import React, { Component } from 'react';
+import { waitFor } from 'pubo-utils';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { DragMethod } from './drag';
 import PanelHeader from './PanelHeader';
 import { storage } from './storage';
 import { PanelEvents, panelStore } from './store';
 
-export class PanelWindow extends Component<any, any> {
+class _PanelWindow {
   config = { minWidth: 234, minHeight: 250 };
-  containerRef: any;
   onContentMouseDown: any;
   onSizeChange: any;
   onMoveStart: any;
   private _pos: any;
   private onWindowResize: any;
   private readonly fixed = { position: 'left', value: 0 };
-  private readonly unsubscribe: any;
-  private readonly upTopPanelSubscriber: any;
+  private unsubscribe: any;
+  private upTopPanelSubscriber: any;
   private readonly windowEdges = { left: 0, right: 0, top: 5, bottom: 60 };
+  private props: any;
+  private el: any;
 
   // 限制拖动区域
   set pos(pos) {
@@ -31,8 +33,8 @@ export class PanelWindow extends Component<any, any> {
       pos.pageX = this.windowEdges.left;
     }
 
-    if (window.innerWidth - pos.pageX - pos.width < this.windowEdges.right) {
-      pos.pageX = window.innerWidth - pos.width - this.windowEdges.right;
+    if (document.body.clientWidth - pos.pageX - pos.width < this.windowEdges.right) {
+      pos.pageX = document.body.clientWidth - pos.width - this.windowEdges.right;
     }
 
     this._pos = pos;
@@ -43,16 +45,14 @@ export class PanelWindow extends Component<any, any> {
   }
 
   constructor(props: any) {
-    super(props);
-
-    if (props.params.minWidth) {
-      this.config.minWidth = props.params.minWidth;
+    this.props = props;
+    if (this.props.params.minWidth) {
+      this.config.minWidth = this.props.params.minWidth;
     }
-    if (props.params.minHeight) {
-      this.config.minHeight = props.params.minHeight + 34;
+    if (this.props.params.minHeight) {
+      this.config.minHeight = this.props.params.minHeight + 34;
     }
-    this.containerRef = React.createRef();
-    this.pos = this.getInitialPosition(props);
+    this.pos = this.getInitialPosition(this.props);
 
     this.onContentMouseDown = new DragMethod({
       onMoveEnd: this.onMoveEnd.bind(this),
@@ -74,6 +74,16 @@ export class PanelWindow extends Component<any, any> {
       panelStore.updateTopPanel(this.props.params.id);
       this._removeModalPanels();
     };
+  }
+
+  dispose() {
+    window.removeEventListener('resize', this.onWindowResize);
+    panelStore.emitter.cancel(this.unsubscribe);
+    panelStore.emitter.cancel(this.upTopPanelSubscriber);
+  }
+
+  init(el: any) {
+    this.el = el;
 
     this.unsubscribe = panelStore.emitter.on(PanelEvents.UPDATE_FOCUS_PANEL, (id: string) => {
       let border = '4px solid rgba(0, 0, 0, 0)';
@@ -82,32 +92,20 @@ export class PanelWindow extends Component<any, any> {
         border = '4px solid #007AFF';
       }
 
-      if (this.containerRef.current.style.border !== border) {
-        this.containerRef.current.style.border = border;
+      if (this.el.style.border !== border) {
+        this.el.style.border = border;
       }
     });
 
     this.upTopPanelSubscriber = panelStore.emitter.on(PanelEvents.UPDATE_TOP_PANEL, (ids: string) => {
       const index = ids.indexOf(this.props.params.id);
       if (index > -1) {
-        this.containerRef.current.style.zIndex = (this.props.params?.zIndex ?? 1) + index;
+        this.el.style.zIndex = (this.props.params?.zIndex ?? 1) + index;
       }
     });
   }
 
-  componentDidUpdate(prevProps: Readonly<any>): void {
-    if (prevProps?.hiddenWindow !== this.props.hiddenWindow) {
-      storage.merge({ [this.props.params.id]: { ...this.pos, hiddenWindow: prevProps.hiddenWindow } });
-    }
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.onWindowResize);
-    panelStore.emitter.cancel(this.unsubscribe);
-    panelStore.emitter.cancel(this.upTopPanelSubscriber);
-  }
-
-  componentDidMount() {
+  mount() {
     this.updatePos();
     this.props.emitter.emit('update-pos', this.pos);
     this.onWindowResize = this._onWindowResize.bind(this);
@@ -115,23 +113,23 @@ export class PanelWindow extends Component<any, any> {
 
     const i = panelStore.getState().order.indexOf(this.props.params.id);
     if (i > -1) {
-      this.containerRef.current.style.zIndex = (this.props.params?.zIndex ?? 1) + i;
+      this.el.style.zIndex = (this.props.params?.zIndex ?? 1) + i;
     }
 
     const index = panelStore.getState().order.indexOf(this.props.params.id);
     if (index > -1) {
-      this.containerRef.current.style.zIndex = (this.props.params?.zIndex ?? 1) + index;
+      this.el.style.zIndex = (this.props.params?.zIndex ?? 1) + index;
     }
   }
 
   updatePos() {
-    if (!this.containerRef.current) {
+    if (!this.el) {
       return;
     }
-    this.containerRef.current.style.left = `${this.pos.pageX}px`;
-    this.containerRef.current.style.top = `${this.pos.pageY}px`;
-    this.containerRef.current.style.width = `${this.pos.width}px`;
-    this.containerRef.current.style.height = `${this.pos.height}px`;
+    this.el.style.left = `${this.pos.pageX}px`;
+    this.el.style.top = `${this.pos.pageY}px`;
+    this.el.style.width = `${this.pos.width}px`;
+    this.el.style.height = `${this.pos.height}px`;
   }
 
   onMoveEnd() {
@@ -149,8 +147,8 @@ export class PanelWindow extends Component<any, any> {
   }
 
   resize({ offsetX, offsetY }: any) {
-    const oldWidth = this.pos.width ?? this.containerRef.current.clientWidth;
-    const oldHeight = this.pos.height ?? this.containerRef.current.clientHeight;
+    const oldWidth = this.pos.width ?? this.el.clientWidth;
+    const oldHeight = this.pos.height ?? this.el.clientHeight;
     const n = { ...this.pos, width: oldWidth + offsetX, height: oldHeight + offsetY };
     if (n.width < this.config.minWidth) {
       n.width = this.config.minWidth;
@@ -185,7 +183,7 @@ export class PanelWindow extends Component<any, any> {
     }
     const width = props.params.defaultWidth || this.config.minWidth;
     const pos = {
-      pageX: props.params.defaultPageX ?? (window.innerWidth - width) / 2,
+      pageX: props.params.defaultPageX ?? (document.body.clientWidth - width) / 2,
       pageY: props.params.defaultPageY ?? 10,
       width,
       height: props.params.defaultHeight || this.config.minHeight,
@@ -205,7 +203,7 @@ export class PanelWindow extends Component<any, any> {
     }
   }
 
-  private _removeModalPanels() {
+  _removeModalPanels() {
     const arr = panelStore
       .getState()
       .list.filter((item: any) => !item.rest.closable && item.id !== this.props.params.id);
@@ -214,73 +212,95 @@ export class PanelWindow extends Component<any, any> {
       panelStore.remove(item.id);
     });
   }
+}
 
-  render() {
-    return (
-      <div
-        draggable={false}
-        style={{
-          position: 'absolute',
-          boxSizing: 'content-box',
-          overflow: 'visible',
-          borderRadius: 14,
-          border: '4px solid rgba(0, 0, 0, 0)',
-        }}
-        ref={this.containerRef}
-        onClick={(e) => {
-          this._removeModalPanels();
+export function PanelWindow(props: any) {
+  const instance = useMemo(() => new _PanelWindow(props), []);
+  const ref: any = useRef();
 
-          e.stopPropagation();
-          panelStore.updateTopPanel(this.props.params.id);
-        }}
-      >
-        <div style={{ width: '100%', height: '100%' }} className="panel">
-          {this.props.hiddenWindow ? (
-            <div style={{ height: '34px', opacity: 0 }} />
-          ) : (
-            <PanelHeader
-              closable={this.props.closable}
-              onMouseDown={this.onMoveStart}
-              defaultWidth={this.pos.width}
-              emitter={this.props.emitter}
-              onClose={() => this.onClose()}
-              right={this.props.header}
-              bordered={this.props.params.rest.headerBorder}
-            >
-              {this.props.title}
-            </PanelHeader>
-          )}
-          <div
-            className="panel-content card"
-            onMouseDown={this.props.hiddenWindow ? this.onMoveStart : null}
-            style={{ borderColor: this.props.hiddenWindow ? 'rgba(0, 0, 0, 0)' : undefined }}
+  const init = useCallback(async () => {
+    await waitFor(async () => ref.current, { checkTime: 100, timeout: 10000 });
+
+    instance.init(ref.current);
+    instance.mount();
+  }, []);
+
+  useEffect(() => {
+    init();
+
+    return () => {
+      instance.dispose();
+    };
+  }, []);
+
+  useEffect(() => {
+    storage.merge({ [props.params.id]: { ...instance.pos, hiddenWindow: props.hiddenWindow } });
+  }, [props.hiddenWindow]);
+
+  return (
+    <div
+      draggable={false}
+      style={{
+        position: 'absolute',
+        boxSizing: 'border-box',
+        overflow: 'visible',
+        borderRadius: 14,
+        border: '4px solid rgba(0, 0, 0, 0)',
+      }}
+      ref={ref}
+      onClick={(e) => {
+        instance._removeModalPanels();
+
+        e.stopPropagation();
+        panelStore.updateTopPanel(props.params.id);
+      }}
+    >
+      <div style={{ width: '100%', height: '100%' }} className="panel">
+        {props.hiddenWindow ? (
+          <div style={{ height: '34px', opacity: 0 }} />
+        ) : (
+          <PanelHeader
+            closable={props.closable}
+            onMouseDown={instance.onMoveStart}
+            defaultWidth={instance.pos.width}
+            emitter={props.emitter}
+            onClose={() => instance.onClose()}
+            right={props.header}
+            bordered={props.params.rest.headerBorder}
           >
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: `rgba(69, 69, 69, ${this.props.params.backgroundOpacity ?? 1})`,
-                overflow: this.props.scrollable ? 'auto' : 'hidden',
-                boxSizing: 'content-box',
-                color: '#fff',
-              }}
-              className={this.props.scrollable ? 'primary-responsive' : ''}
-            >
-              {this.props.children}
-            </div>
+            {props.title}
+          </PanelHeader>
+        )}
+        <div
+          className="panel-content card"
+          onMouseDown={props.hiddenWindow ? instance.onMoveStart : null}
+          style={{ borderColor: props.hiddenWindow ? 'rgba(0, 0, 0, 0)' : undefined }}
+        >
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: `rgba(69, 69, 69, ${props.params.backgroundOpacity ?? 1})`,
+              overflow: props.scrollable ? 'auto' : 'hidden',
+              boxSizing: 'content-box',
+              color: '#fff',
+            }}
+            className={props.scrollable ? 'primary-responsive' : ''}
+          >
+            {props.children}
           </div>
-          {this.props.resizable && (
-            <div
-              className="panel-resize-rect"
-              draggable={false}
-              onMouseDown={(e: any) => {
-                e.stopPropagation();
-                this.onSizeChange.onMouseDown(e);
-              }}
-            />
-          )}
         </div>
+        {props.resizable && (
+          <div
+            className="panel-resize-rect"
+            draggable={false}
+            onMouseDown={(e: any) => {
+              e.stopPropagation();
+              instance.onSizeChange.onMouseDown(e);
+            }}
+          />
+        )}
       </div>
-    );
-  }
+    </div>
+  );
 }

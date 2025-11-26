@@ -17,7 +17,7 @@ register([
 
 function App() {
   return (
-    <div style={{ height: '100vh', width: '100%', position: 'relative', background: '#333' }}>
+    <div style={{ height: '100vh', width: '100%', position: 'relative', background: '#333', overflow: 'hidden' }}>
       <button
         onClick={() => {
           console.log('add');
