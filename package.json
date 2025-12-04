@@ -11,19 +11,21 @@
     "preview": "rsbuild preview"
   },
   "dependencies": {
+    "babel-plugin-react-compiler": "^1.0.0",
     "pubo-utils": "^1.0.198",
-    "pubo-web": "^1.0.149",
-    "react": "^18.2.0",
-    "react-dom": "^18.3.1",
+    "pubo-web": "^1.0.198",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "react-router-dom": "^7.0.2",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.0",
     "@eslint/js": "^9.12.0",
-    "@rsbuild/core": "^1.0.16",
-    "@rsbuild/plugin-react": "^1.0.5",
-    "@types/react": "^18.3.11",
+    "@rsbuild/core": "^1.6.12",
+    "@rsbuild/plugin-babel": "^1.0.6",
+    "@rsbuild/plugin-react": "^1.4.2",
+    "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/rollup-plugin-visualizer": "^4.2.4",
     "@types/uuid": "^10.0.0",

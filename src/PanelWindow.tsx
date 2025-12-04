@@ -214,7 +214,7 @@ class _PanelWindow {
 
 export function PanelWindow(props: any) {
   const instance = useMemo(() => new _PanelWindow(props), []);
-  const ref: any = useRef();
+  const ref: any = useRef('');
 
   const init = useCallback(async () => {
     await waitFor(async () => ref.current, { checkTime: 100, timeout: 10000 });
