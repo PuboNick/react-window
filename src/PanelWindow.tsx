@@ -7,18 +7,21 @@ import { storage } from './storage';
 import { PanelEvents, panelStore } from './store';
 
 class _PanelWindow {
+  private readonly activeBorderColor = '#aaa';
+  private readonly baseIndex = 100;
+  private readonly fixed = { position: 'left', value: 0 };
+  private readonly windowEdges = { left: 0, right: 0, top: 5, bottom: 60 };
+
+  private _pos: any;
+  private onWindowResize: any;
+  private unsubscribes: any = [];
+  private props: any;
+  private el: any;
+
   config = { minWidth: 234, minHeight: 250 };
   onContentMouseDown: any;
   onSizeChange: any;
   onMoveStart: any;
-  private _pos: any;
-  private onWindowResize: any;
-  private readonly fixed = { position: 'left', value: 0 };
-  private unsubscribe: any;
-  private upTopPanelSubscriber: any;
-  private readonly windowEdges = { left: 0, right: 0, top: 5, bottom: 60 };
-  private props: any;
-  private el: any;
 
   // 限制拖动区域
   set pos(pos) {
@@ -72,57 +75,71 @@ class _PanelWindow {
       e.stopPropagation();
       this.onContentMouseDown.onMouseDown(e);
       panelStore.updateTopPanel(this.props.params.id);
-      this._removeModalPanels();
+      this.removeModalPanels();
     };
   }
 
-  dispose() {
+  public dispose() {
     window.removeEventListener('resize', this.onWindowResize);
-    panelStore.emitter.cancel(this.unsubscribe);
-    panelStore.emitter.cancel(this.upTopPanelSubscriber);
+
+    for (const id of this.unsubscribes) {
+      panelStore.emitter.cancel(id);
+    }
   }
 
-  init(el: any) {
+  public mount(el: any) {
     this.el = el;
 
-    this.unsubscribe = panelStore.emitter.on(PanelEvents.UPDATE_FOCUS_PANEL, (id: string) => {
+    const focus = panelStore.emitter.on(PanelEvents.UPDATE_FOCUS_PANEL, (id: string) => {
       let border = '4px solid rgba(0, 0, 0, 0)';
-
       if (id === this.props.params.id) {
-        border = '4px solid #007AFF';
+        border = `4px solid ${this.activeBorderColor}`;
       }
-
       if (this.el.style.border !== border) {
         this.el.style.border = border;
       }
     });
 
-    this.upTopPanelSubscriber = panelStore.emitter.on(PanelEvents.UPDATE_TOP_PANEL, (ids: string) => {
+    const top = panelStore.emitter.on(PanelEvents.UPDATE_TOP_PANEL, (ids: string) => {
       const index = ids.indexOf(this.props.params.id);
       if (index > -1) {
-        this.el.style.zIndex = (this.props.params?.zIndex ?? 1) + index;
+        this.el.style.zIndex = (this.props.params?.zIndex ?? 1) + index + this.baseIndex;
       }
     });
-  }
 
-  mount() {
-    this.updatePos();
-    this.props.emitter.emit('update-pos', this.pos);
     this.onWindowResize = this._onWindowResize.bind(this);
     window.addEventListener('resize', this.onWindowResize);
-
-    const i = panelStore.getState().order.indexOf(this.props.params.id);
-    if (i > -1) {
-      this.el.style.zIndex = (this.props.params?.zIndex ?? 1) + i;
-    }
+    this.updatePos();
+    this.props.emitter.emit('update-pos', this.pos);
 
     const index = panelStore.getState().order.indexOf(this.props.params.id);
     if (index > -1) {
-      this.el.style.zIndex = (this.props.params?.zIndex ?? 1) + index;
+      this.el.style.zIndex = (this.props.params?.zIndex ?? 1) + index + this.baseIndex;
+    }
+
+    this.unsubscribes.push(focus, top);
+  }
+
+  public onClose() {
+    const s = { ...storage.state };
+    delete s[this.props.params.id];
+    storage.state = s;
+    if (typeof this.props.onClose === 'function') {
+      this.props.onClose();
     }
   }
 
-  updatePos() {
+  public removeModalPanels() {
+    const arr = panelStore
+      .getState()
+      .list.filter((item: any) => !item.rest.closable && item.id !== this.props.params.id);
+
+    arr.forEach((item: any) => {
+      panelStore.remove(item.id);
+    });
+  }
+
+  private updatePos() {
     if (!this.el) {
       return;
     }
@@ -132,7 +149,7 @@ class _PanelWindow {
     this.el.style.height = `${this.pos.height}px`;
   }
 
-  onMoveEnd() {
+  private onMoveEnd() {
     const res: any = {};
     res[this.props.params.id] = this.pos;
     storage.merge(res);
@@ -140,13 +157,13 @@ class _PanelWindow {
     this.setFixed(this.pos);
   }
 
-  moveWindow({ offsetX, offsetY }: any) {
+  private moveWindow({ offsetX, offsetY }: any) {
     const pos = { pageX: this.pos.pageX + offsetX, pageY: this.pos.pageY + offsetY };
     this.pos = { ...this.pos, ...pos };
     this.updatePos();
   }
 
-  resize({ offsetX, offsetY }: any) {
+  private resize({ offsetX, offsetY }: any) {
     const oldWidth = this.pos.width ?? this.el.clientWidth;
     const oldHeight = this.pos.height ?? this.el.clientHeight;
     const n = { ...this.pos, width: oldWidth + offsetX, height: oldHeight + offsetY };
@@ -162,21 +179,12 @@ class _PanelWindow {
     this.props.emitter.emit('update-size', n);
   }
 
-  onClose() {
-    const s = { ...storage.state };
-    delete s[this.props.params.id];
-    storage.state = s;
-    if (typeof this.props.onClose === 'function') {
-      this.props.onClose();
-    }
-  }
-
-  setFixed(pos: any) {
+  private setFixed(pos: any) {
     this.fixed.position = pos.width / 2 + pos.pageX <= document.body.clientWidth / 2 ? 'left' : 'right';
     this.fixed.value = this.fixed.position === 'left' ? pos.pageX : document.body.clientWidth - pos.pageX - pos.width;
   }
 
-  getInitialPosition(props: any) {
+  private getInitialPosition(props: any) {
     if (storage?.state && storage?.state[this.props.params.id]) {
       this.setFixed(storage.state[this.props.params.id]);
       return storage.state[this.props.params.id];
@@ -194,23 +202,13 @@ class _PanelWindow {
     return pos;
   }
 
-  _onWindowResize() {
+  private _onWindowResize() {
     if (this.fixed.position === 'right') {
       const pageX = document.body.clientWidth - this.fixed.value - this.pos.width;
       this.pos = { ...this.pos, pageX };
       this.updatePos();
       this.props.emitter.emit('update-pos', this.pos);
     }
-  }
-
-  _removeModalPanels() {
-    const arr = panelStore
-      .getState()
-      .list.filter((item: any) => !item.rest.closable && item.id !== this.props.params.id);
-
-    arr.forEach((item: any) => {
-      panelStore.remove(item.id);
-    });
   }
 }
 
@@ -220,9 +218,7 @@ export function PanelWindow(props: any) {
 
   const init = useCallback(async () => {
     await waitFor(async () => ref.current, { checkTime: 100, timeout: 10000 });
-
-    instance.init(ref.current);
-    instance.mount();
+    instance.mount(ref.current);
   }, []);
 
   useEffect(() => {
@@ -242,15 +238,18 @@ export function PanelWindow(props: any) {
       draggable={false}
       style={{
         position: 'absolute',
-        boxSizing: 'border-box',
+        boxSizing: 'content-box',
         overflow: 'visible',
         borderRadius: 14,
         border: '4px solid rgba(0, 0, 0, 0)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2px 1px',
       }}
       ref={ref}
       onClick={(e) => {
-        instance._removeModalPanels();
-
+        instance.removeModalPanels();
         e.stopPropagation();
         panelStore.updateTopPanel(props.params.id);
       }}

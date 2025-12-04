@@ -142,7 +142,7 @@ class PanelStore {
     list.splice(index, 1);
     this.state.list = list;
     const orderIndex = this.state.order.indexOf(id);
-    if (index > 0) {
+    if (index > -1) {
       this.state.order.splice(orderIndex, 1);
       this.emitter.emit(PanelEvents.UPDATE_TOP_PANEL, this.state.order);
     }
